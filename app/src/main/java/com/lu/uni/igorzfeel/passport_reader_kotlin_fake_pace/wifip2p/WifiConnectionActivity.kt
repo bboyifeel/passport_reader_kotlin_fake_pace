@@ -1,4 +1,4 @@
-package com.lu.uni.igorzfeel.passport_reader_kotlin_fake_pace
+package com.lu.uni.igorzfeel.passport_reader_kotlin_fake_pace.wifip2p
 
 import android.Manifest
 import android.content.BroadcastReceiver
@@ -19,6 +19,7 @@ import android.widget.AdapterView.OnItemClickListener
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.lu.uni.igorzfeel.passport_reader_kotlin_fake_pace.R
 import kotlinx.android.synthetic.main.activity_wifi_connection.*
 import java.io.IOException
 import java.io.InputStream
@@ -101,11 +102,15 @@ open class WifiConnectionActivity : AppCompatActivity() {
         val groupOwnerAddress = info.groupOwnerAddress
         if (info.groupFormed && info.isGroupOwner) {
             connectionStatus!!.text = "Host"
-            serverClass = ServerClass()
+            serverClass =
+                ServerClass()
             serverClass!!.start()
         } else if (info.groupFormed) {
             connectionStatus!!.text = "Client"
-            clientClass = ClientClass(groupOwnerAddress)
+            clientClass =
+                ClientClass(
+                    groupOwnerAddress
+                )
             clientClass!!.start()
         }
     }
@@ -171,14 +176,15 @@ open class WifiConnectionActivity : AppCompatActivity() {
         p2pManager = getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager?
         p2pChannel = p2pManager!!.initialize(this, mainLooper, null)
 
-        broadcastReceiver = WiFiDirectBroadcastReceiver(
-            p2pManager!!,
-            p2pChannel!!,
-            this,
-            peerListListener,
-            connectionInfoListener,
-            connectionStatus
-        )
+        broadcastReceiver =
+            WiFiDirectBroadcastReceiver(
+                p2pManager!!,
+                p2pChannel!!,
+                this,
+                peerListListener,
+                connectionInfoListener,
+                connectionStatus
+            )
 
         intentFilter = IntentFilter()
         intentFilter!!.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION)
@@ -220,7 +226,10 @@ open class WifiConnectionActivity : AppCompatActivity() {
             try {
                 serverSocket = ServerSocket(8888)
                 socket = serverSocket!!.accept()
-                sendReceive = SendReceive(socket)
+                sendReceive =
+                    SendReceive(
+                        socket
+                    )
                 sendReceive!!.start()
             } catch (e: IOException) {
                 e.printStackTrace()
@@ -273,7 +282,10 @@ open class WifiConnectionActivity : AppCompatActivity() {
         override fun run() {
             try {
                 socket.connect(InetSocketAddress(hostAddr, 8888), 500)
-                sendReceive = SendReceive(socket)
+                sendReceive =
+                    SendReceive(
+                        socket
+                    )
                 sendReceive!!.start()
             } catch (e: IOException) {
                 e.printStackTrace()

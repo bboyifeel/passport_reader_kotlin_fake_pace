@@ -1,4 +1,4 @@
-package com.lu.uni.igorzfeel.passport_reader_kotlin_fake_pace
+package com.lu.uni.igorzfeel.passport_reader_kotlin_fake_pace.wifip2p
 
 
 import android.app.Activity
@@ -45,7 +45,8 @@ class WiFiDirectBroadcastReceiver(
                 Toast.makeText(mActivity, "Wifi p2p is OFF", Toast.LENGTH_SHORT).show()
             }
         } else if (WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION == intent.action) {
-            mManager?.requestPeers(mChannel, peerListListener)
+            mManager?.requestPeers(
+                mChannel, peerListListener)
 
         } else if (WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION == intent.action) {
 
@@ -55,7 +56,8 @@ class WiFiDirectBroadcastReceiver(
             val netwinfo = intent.getParcelableExtra<Parcelable>(WifiP2pManager.EXTRA_NETWORK_INFO) as NetworkInfo
             if (netwinfo.isConnected) {
                 Toast.makeText(mActivity, "Device is Connected", Toast.LENGTH_SHORT).show()
-                mManager?.requestConnectionInfo(mChannel, connectionInfoListener)
+                mManager?.requestConnectionInfo(
+                    mChannel, connectionInfoListener)
             } else {
                 Toast.makeText(mActivity, "Device is Disconnected", Toast.LENGTH_SHORT).show()
                 connectionStatus.text = "Device Disconnected"
