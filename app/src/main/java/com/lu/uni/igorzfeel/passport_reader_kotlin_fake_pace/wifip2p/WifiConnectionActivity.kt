@@ -3,6 +3,7 @@ package com.lu.uni.igorzfeel.passport_reader_kotlin_fake_pace.wifip2p
 import android.Manifest
 import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.wifi.WifiManager
@@ -15,6 +16,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.StrictMode
+import android.util.Log
 import android.widget.AdapterView.OnItemClickListener
 import android.widget.ArrayAdapter
 import android.widget.Toast
@@ -35,38 +37,24 @@ open class WifiConnectionActivity : AppCompatActivity() {
 
     companion object {
         const val TAG = "WifiConnectionActivity"
-        const val MESSAGE_READ = 1
         const val PERMISSIONS_REQUEST_CODE_ACCESS_FINE_LOCATION = 1001
-        var serverClass: ServerClass? = null
-        var clientClass: ClientClass? = null
-        var sendReceive: SendReceive? = null
+        const val SERVER = "Server"
+        const val CLIENT = "Client"
+        const val MESSAGE_READ = 1
+        var server: Server? = null
+        var client: Client? = null
     }
 
-    var wifiManager: WifiManager? = null
+//    var wifiManager: WifiManager? = null
     var p2pManager: WifiP2pManager? = null
     var p2pChannel: WifiP2pManager.Channel? = null
     var broadcastReceiver: BroadcastReceiver? = null
-    var intentFilter: IntentFilter? = null
+    var intentFilter: IntentFilter = IntentFilter()
     var peers: MutableList<WifiP2pDevice> = ArrayList()
 
     private lateinit var deviceNameArray: Array<String?>
     private lateinit var deviceArray: Array<WifiP2pDevice?>
 
-    private var handler = Handler(Handler.Callback { msg ->
-
-        when (msg.what) {
-            MESSAGE_READ -> {
-                val challengeBytes = msg.obj as ByteArray
-                val challenge = String(challengeBytes, 0, 8)
-                updateLog("Nonce has been updated with ")
-//
-//                CardService.NONCE =
-//                    CardService.ByteArrayToHexString(challenge.toByteArray()) // has to have format "4141414141414141"
-//                      updateLog("Nonce has been updated with ")
-            }
-        }
-        true
-    })
 
     private val peerListListener = PeerListListener { peerList ->
         val refreshedPeers = peerList.deviceList
@@ -98,20 +86,22 @@ open class WifiConnectionActivity : AppCompatActivity() {
         }
     }
 
+
     private var connectionInfoListener = ConnectionInfoListener { info ->
+
+        updateLog("connectionInfoListener")
         val groupOwnerAddress = info.groupOwnerAddress
+        var msg:String = "Some msg"
         if (info.groupFormed && info.isGroupOwner) {
-            connectionStatus!!.text = "Host"
-            serverClass =
-                ServerClass()
-            serverClass!!.start()
+            connectionStatus!!.text = SERVER
+            server = Server()
+            server!!.start()
+            msg = "Server is broadcasting"
         } else if (info.groupFormed) {
-            connectionStatus!!.text = "Client"
-            clientClass =
-                ClientClass(
-                    groupOwnerAddress
-                )
-            clientClass!!.start()
+            connectionStatus!!.text = CLIENT
+            client = Client(groupOwnerAddress)
+            client!!.start()
+            msg = "Client is broadcasting"
         }
     }
 
@@ -157,6 +147,7 @@ open class WifiConnectionActivity : AppCompatActivity() {
         }
     }
 
+
     private fun sdkValidation() {
         val SDK_INT = Build.VERSION.SDK_INT
         if (SDK_INT > 8) {
@@ -168,11 +159,18 @@ open class WifiConnectionActivity : AppCompatActivity() {
 
 
     private fun updateLog(msg: String) {
-        Toast.makeText(this.applicationContext, msg, Toast.LENGTH_SHORT).show()
+//        Toast.makeText(applicationContext, msg, Toast.LENGTH_SHORT).show()
+        Log.i(TAG, msg)
     }
 
+
     private fun init() {
-        wifiManager = this.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager?
+        intentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION)
+        intentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION)
+        intentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION)
+        intentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION)
+
+//        wifiManager = this.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager?
         p2pManager = getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager?
         p2pChannel = p2pManager!!.initialize(this, mainLooper, null)
 
@@ -185,12 +183,6 @@ open class WifiConnectionActivity : AppCompatActivity() {
                 connectionInfoListener,
                 connectionStatus
             )
-
-        intentFilter = IntentFilter()
-        intentFilter!!.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION)
-        intentFilter!!.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION)
-        intentFilter!!.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION)
-        intentFilter!!.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION)
 
 
         btnDiscover!!.setOnClickListener {
@@ -207,10 +199,12 @@ open class WifiConnectionActivity : AppCompatActivity() {
         }
     }
 
+
     override fun onResume() {
         super.onResume()
         registerReceiver(broadcastReceiver, intentFilter)
     }
+
 
     override fun onPause() {
         super.onPause()
@@ -218,7 +212,26 @@ open class WifiConnectionActivity : AppCompatActivity() {
     }
 
 
-    class ServerClass : Thread() {
+    lateinit var sendReceive: SendReceive
+
+    inner class Client(hostAddr: InetAddress) : Thread() {
+        var socket: Socket = Socket()
+        private var hostAddr: String = hostAddr.hostAddress
+
+        override fun run() {
+            try {
+                socket.connect(InetSocketAddress(hostAddr, 8888), 500)
+                updateLog("about to initialise sendReceive from client")
+                sendReceive = SendReceive(socket)
+                sendReceive.start()
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+
+    inner class Server : Thread() {
         var socket: Socket? = null
         var serverSocket: ServerSocket? = null
 
@@ -226,30 +239,47 @@ open class WifiConnectionActivity : AppCompatActivity() {
             try {
                 serverSocket = ServerSocket(8888)
                 socket = serverSocket!!.accept()
-                sendReceive =
-                    SendReceive(
-                        socket
-                    )
-                sendReceive!!.start()
+
+                updateLog("about to initialise sendReceive from server")
+                sendReceive = SendReceive(socket)
+                sendReceive.start()
+                sendReceive.SendMessage("This is from Server".toByteArray(Charsets.UTF_8))
             } catch (e: IOException) {
                 e.printStackTrace()
             }
         }
     }
 
-    class SendReceive(private val socket: Socket?) : Thread() {
+    private var handler = Handler(Handler.Callback { msg ->
+        when (msg.what) {
+            MESSAGE_READ -> {
+                val buffer = msg.obj as ByteArray
+                val msgString = String(buffer, 0, msg.arg1)
+                message.text = msgString
+                updateLog(msgString)
+            }
+        }
+        true
+    })
 
-        private var inputStream: InputStream? = null
-        private var outputStream: OutputStream? = null
+
+    inner class SendReceive(private val socket: Socket?) : Thread() {
+
+        private lateinit var inputStream: InputStream
+        private lateinit var outputStream: OutputStream
 
         override fun run() {
+
             val buffer = ByteArray(1024)
             var bytes: Int
             while (socket != null) {
                 try {
-                    bytes = inputStream!!.read(buffer)
+                    bytes = inputStream.read(buffer)
+
                     if (bytes > 0) {
-//                        handler.obtainMessage(MESSAGE_READ, bytes, -1, buffer).sendToTarget()
+                        handler
+                            .obtainMessage(MESSAGE_READ, bytes, -1, buffer)
+                            .sendToTarget()
                     }
                 } catch (e: IOException) {
                     e.printStackTrace()
@@ -257,15 +287,16 @@ open class WifiConnectionActivity : AppCompatActivity() {
             }
         }
 
-        fun write(bytes: ByteArray?) {
+        fun SendMessage(bytes: ByteArray?) {
             try {
-                outputStream!!.write(bytes)
+                outputStream.write(bytes)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
 
         init {
+            updateLog("sendReceive has been initialized")
             try {
                 inputStream = socket!!.getInputStream()
                 outputStream = socket.getOutputStream()
@@ -275,21 +306,4 @@ open class WifiConnectionActivity : AppCompatActivity() {
         }
     }
 
-    class ClientClass(hostAddr: InetAddress) : Thread() {
-        var socket: Socket = Socket()
-        var hostAddr: String = hostAddr.hostAddress
-
-        override fun run() {
-            try {
-                socket.connect(InetSocketAddress(hostAddr, 8888), 500)
-                sendReceive =
-                    SendReceive(
-                        socket
-                    )
-                sendReceive!!.start()
-            } catch (e: IOException) {
-                e.printStackTrace()
-            }
-        }
-    }
 }
