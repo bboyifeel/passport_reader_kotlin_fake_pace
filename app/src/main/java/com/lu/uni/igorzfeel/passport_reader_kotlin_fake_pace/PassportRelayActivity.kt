@@ -104,14 +104,14 @@ class PassportRelayActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
     }
 
 
-    public override fun onDestroy() {
-        super.onDestroy()
-
-        sendReceive.closeConnection()
-
-        if (status == WifiConnectionActivity.SERVER)
-            server!!.closeServerSocket()
-    }
+//    public override fun onDestroy() {
+//        super.onDestroy()
+//
+//        sendReceive.closeConnection()
+//
+//        if (status == WifiConnectionActivity.SERVER)
+//            server!!.closeServerSocket()
+//    }
 
 
     override fun onTagDiscovered(tag: Tag?) {
@@ -231,7 +231,7 @@ class PassportRelayActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
                 sendReceive = SendReceive(clientSocket)
                 sendReceive.start()
             } catch (e: IOException) {
-                e.printStackTrace()
+                updateError(e.toString())
             }
         }
     }
@@ -251,7 +251,7 @@ class PassportRelayActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
                 sendReceive = SendReceive(clientSocket)
                 sendReceive.start()
             } catch (e: IOException) {
-                e.printStackTrace()
+                updateError(e.toString())
             }
         }
 
@@ -261,7 +261,7 @@ class PassportRelayActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
             try {
                 serverSocket!!.close()
             } catch (e: IOException) {
-                e.printStackTrace()
+                updateError(e.toString())
             }
         }
 
@@ -270,7 +270,7 @@ class PassportRelayActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
             try {
                 serverSocket = ServerSocket(serverPort)
             } catch (e: IOException) {
-                e.printStackTrace()
+                updateError(e.toString())
             }
         }
     }
