@@ -7,8 +7,6 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
 import android.util.Log
-import com.lu.uni.igorzfeel.passport_reader_kotlin_fake_pace.wifip2p.SendReceiveActivity
-import com.lu.uni.igorzfeel.passport_reader_kotlin_fake_pace.wifip2p.WifiConnectionActivity
 import kotlinx.android.synthetic.main.activity_passport_relay.*
 import java.io.IOException
 import java.io.InputStream
@@ -24,8 +22,8 @@ class PassportRelayActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
     companion object {
         val TAG: String = "PassportRelayActivity"
         const val MESSAGE_READ = 1
-        var server: PassportRelayActivity.Server? = null
-        var client: PassportRelayActivity.Client? = null
+        var server: Server? = null
+        var client: Client? = null
 
         val OK_RAPDU        = Utils.hexStringToByteArray("9000")
         val FAILED_RAPDU    = Utils.hexStringToByteArray("6F00")
@@ -156,7 +154,7 @@ class PassportRelayActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
 
     private var handler = Handler(Handler.Callback { msg ->
         when (msg.what) {
-            SendReceiveActivity.MESSAGE_READ -> {
+            MESSAGE_READ -> {
                 val buffer = msg.obj as ByteArray
                 val msgString = String(buffer, 0, msg.arg1)
 //                msgTextView.text = msgString

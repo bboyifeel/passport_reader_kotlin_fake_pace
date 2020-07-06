@@ -1,4 +1,4 @@
-package com.lu.uni.igorzfeel.passport_reader_kotlin_fake_pace.wifip2p
+package com.lu.uni.igorzfeel.passport_reader_kotlin_fake_pace
 
 import android.Manifest
 import android.content.BroadcastReceiver
@@ -18,8 +18,6 @@ import android.util.Log
 import android.widget.AdapterView.OnItemClickListener
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AppCompatActivity
-import com.lu.uni.igorzfeel.passport_reader_kotlin_fake_pace.PassportRelayActivity
-import com.lu.uni.igorzfeel.passport_reader_kotlin_fake_pace.R
 import kotlinx.android.synthetic.main.activity_wifi_connection.*
 import java.net.InetAddress
 import java.util.*
@@ -83,9 +81,11 @@ open class WifiConnectionActivity : AppCompatActivity() {
         updateLog("connectionInfoListener")
         groupOwnerAddress = info.groupOwnerAddress
         if (info.groupFormed && info.isGroupOwner) {
-            connectionStatus!!.text = SERVER
+            connectionStatus!!.text =
+                SERVER
         } else if (info.groupFormed) {
-            connectionStatus!!.text = CLIENT
+            connectionStatus!!.text =
+                CLIENT
         } else {
             return@ConnectionInfoListener
         }

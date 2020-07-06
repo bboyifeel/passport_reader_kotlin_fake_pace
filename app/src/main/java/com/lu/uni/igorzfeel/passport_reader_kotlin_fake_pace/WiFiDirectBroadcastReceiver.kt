@@ -1,4 +1,4 @@
-package com.lu.uni.igorzfeel.passport_reader_kotlin_fake_pace.wifip2p
+package com.lu.uni.igorzfeel.passport_reader_kotlin_fake_pace
 
 
 import android.app.Activity

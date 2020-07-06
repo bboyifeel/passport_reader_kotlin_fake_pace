@@ -23,7 +23,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity android:name=".wifip2p.SendReceiveActivity"></activity>
-        <activity android:name=".wifip2p.WifiConnectionActivity">
+        <activity android:name=".WifiConnectionActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
