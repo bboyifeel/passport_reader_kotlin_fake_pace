@@ -3,10 +3,10 @@ package com.lu.uni.igorzfeel.passport_reader_kotlin_fake_pace
 import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.nfc.tech.IsoDep
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
 import android.util.Log
+import androidx.appcompat.app.AppCompatActivity
 import kotlinx.android.synthetic.main.activity_passport_relay.*
 import java.io.IOException
 import java.io.InputStream
@@ -16,6 +16,7 @@ import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.util.*
+
 
 class PassportRelayActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
 
@@ -68,11 +69,11 @@ class PassportRelayActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
             updateError(e.toString())
         }
 
-
         btnSend.setOnClickListener {
-            sendReceive.sendMessage("This is a test message".toByteArray())
+            sendReceive.sendMessage("This is a test message")
         }
     }
+
 
     private fun initializeServer() {
         server = Server()
@@ -81,12 +82,14 @@ class PassportRelayActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
         updateLog("Connected as $status")
     }
 
+
     private fun initializeClient() {
         client = Client(WifiConnectionActivity.groupOwnerAddress)
         client!!.start()
 
         updateLog("Connected as $status")
     }
+
 
     public override fun onResume() {
         super.onResume()
@@ -102,16 +105,6 @@ class PassportRelayActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
         super.onPause()
         nfcAdapter?.disableReaderMode(this)
     }
-
-
-//    public override fun onDestroy() {
-//        super.onDestroy()
-//
-//        sendReceive.closeConnection()
-//
-//        if (status == WifiConnectionActivity.SERVER)
-//            server!!.closeServerSocket()
-//    }
 
 
     override fun onTagDiscovered(tag: Tag?) {
@@ -137,6 +130,7 @@ class PassportRelayActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
 
         isoDep.close()
     }
+
 
     private fun updateLog(msg: String) {
         Log.i(TAG, msg)
@@ -171,18 +165,33 @@ class PassportRelayActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
         private lateinit var outputStream: OutputStream
 
         override fun run() {
+            updateLog("sendReceive has been initialized and started")
+            try {
+                inputStream = socket!!.getInputStream()
+                outputStream = socket.getOutputStream()
 
-            val buffer = ByteArray(1024)
-            var bytes: Int
-            while (socket != null) {
-                try {
-                    bytes = inputStream.read(buffer)
+                val buffer = ByteArray(1024)
+                var bytes: Int
+                while (true) {
+                    try {
+                        bytes = inputStream.read(buffer)
 
-                    if (bytes > 0) {
-                        handler
-                            .obtainMessage(WifiConnectionActivity.MESSAGE_READ, bytes, -1, buffer)
-                            .sendToTarget()
+                        if (bytes == -1) {
+                            break;
+                        }
+
+                        handler.obtainMessage(WifiConnectionActivity.MESSAGE_READ, bytes, -1, buffer)
+                                .sendToTarget()
+
+                    } catch (e: IOException) {
+                        updateError(e.toString())
                     }
+                }
+            } catch (e: IOException) {
+                updateError(e.toString())
+            } finally {
+                try {
+                    socket?.close();
                 } catch (e: IOException) {
                     updateError(e.toString())
                 }
@@ -190,7 +199,12 @@ class PassportRelayActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
         }
 
 
-        fun sendMessage(bytes: ByteArray?) {
+        fun sendMessage(msg: String) {
+            write(msg.toByteArray())
+        }
+
+
+        fun write(bytes: ByteArray?) {
             try {
                 outputStream.write(bytes)
             } catch (e: Exception) {
@@ -199,76 +213,60 @@ class PassportRelayActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
         }
 
 
-        init {
-            updateLog("sendReceive has been initialized")
-            try {
-                inputStream = socket!!.getInputStream()
-                outputStream = socket.getOutputStream()
-            } catch (e: IOException) {
-                updateError(e.toString())
-            }
-        }
-
-
-        fun closeConnection() {
-            try{
-                socket!!.close()
-            } catch (e: Exception) {
-                updateError(e.toString())
-            }
-        }
     }
 
     inner class Client(hostAddr: InetAddress) : Thread() {
         val serverPort = 9999
-        var clientSocket: Socket = Socket()
+        var socket: Socket = Socket()
 
         private var hostAddr: String = hostAddr.hostAddress
 
         override fun run() {
             try {
-                clientSocket.connect(InetSocketAddress(hostAddr, serverPort), 500)
-                sendReceive = SendReceive(clientSocket)
+                socket.bind(null)
+                socket.connect(InetSocketAddress(hostAddr, serverPort), 5000)
+                sendReceive = SendReceive(socket)
                 sendReceive.start()
             } catch (e: IOException) {
                 updateError(e.toString())
+                try {
+                    socket.close()
+                } catch (e: IOException) {
+                    updateError(e.toString())
+                }
+                return
             }
         }
     }
 
     inner class Server : Thread() {
         val serverPort = 9999
-        var isStopped = true
-
-        var clientSocket: Socket? = null
-        var serverSocket: ServerSocket? = null
+        var socket: ServerSocket? = null
 
         override fun run() {
             openServerSocket()
 
-            try {
-                clientSocket = serverSocket!!.accept()
-                sendReceive = SendReceive(clientSocket)
-                sendReceive.start()
-            } catch (e: IOException) {
-                updateError(e.toString())
+            while (true) {
+                try {
+                    sendReceive = SendReceive(socket!!.accept())
+                    sendReceive.start()
+                } catch (e: IOException) {
+                    try {
+                        if (socket != null && !socket!!.isClosed)
+                            socket!!.close()
+                    } catch (ioe: IOException) {
+                    }
+                    updateError(e.toString())
+                    break
+                }
             }
-        }
 
-
-        fun closeServerSocket() {
-            this.isStopped = true
-            try {
-                serverSocket!!.close()
-            } catch (e: IOException) {
-                updateError(e.toString())
-            }
         }
 
 
         private fun openServerSocket() {
             try {
-                serverSocket = ServerSocket(serverPort)
+                socket = ServerSocket(serverPort)
             } catch (e: IOException) {
                 updateError(e.toString())
             }

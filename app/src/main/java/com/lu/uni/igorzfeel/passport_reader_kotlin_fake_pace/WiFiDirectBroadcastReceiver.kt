@@ -6,6 +6,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.net.NetworkInfo
+import android.net.wifi.p2p.WifiP2pDevice
 import android.net.wifi.p2p.WifiP2pManager
 import android.net.wifi.p2p.WifiP2pManager.ConnectionInfoListener
 import android.net.wifi.p2p.WifiP2pManager.PeerListListener
@@ -63,7 +64,22 @@ class WiFiDirectBroadcastReceiver(
                 connectionStatus.text = "Device Disconnected"
             }
         } else if (WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION == intent.action) {
-            // DO something
+            val device = intent
+                .getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_DEVICE) as WifiP2pDevice
+
+            Toast.makeText(mActivity, getDeviceStatus(device.status), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+
+    fun getDeviceStatus(statusCode: Int): String? {
+        return when (statusCode) {
+            WifiP2pDevice.CONNECTED -> "Connected"
+            WifiP2pDevice.INVITED -> "Invited"
+            WifiP2pDevice.FAILED -> "Failed"
+            WifiP2pDevice.AVAILABLE -> "Available"
+            WifiP2pDevice.UNAVAILABLE -> "Unavailable"
+            else -> "Unknown"
         }
     }
 
