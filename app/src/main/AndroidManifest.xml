@@ -22,7 +22,6 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".wifip2p.SendReceiveActivity"></activity>
         <activity android:name=".WifiConnectionActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
