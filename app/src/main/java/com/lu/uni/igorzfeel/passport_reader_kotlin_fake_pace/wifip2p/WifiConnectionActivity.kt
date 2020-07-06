@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.net.wifi.WifiManager
 import android.net.wifi.p2p.WifiP2pConfig
 import android.net.wifi.p2p.WifiP2pDevice
 import android.net.wifi.p2p.WifiP2pManager
@@ -14,22 +13,15 @@ import android.net.wifi.p2p.WifiP2pManager.ConnectionInfoListener
 import android.net.wifi.p2p.WifiP2pManager.PeerListListener
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
 import android.os.StrictMode
 import android.util.Log
 import android.widget.AdapterView.OnItemClickListener
 import android.widget.ArrayAdapter
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.lu.uni.igorzfeel.passport_reader_kotlin_fake_pace.PassportRelayActivity
 import com.lu.uni.igorzfeel.passport_reader_kotlin_fake_pace.R
 import kotlinx.android.synthetic.main.activity_wifi_connection.*
-import java.io.IOException
-import java.io.InputStream
-import java.io.OutputStream
 import java.net.InetAddress
-import java.net.InetSocketAddress
-import java.net.ServerSocket
-import java.net.Socket
 import java.util.*
 
 
@@ -41,8 +33,7 @@ open class WifiConnectionActivity : AppCompatActivity() {
         const val SERVER = "Server"
         const val CLIENT = "Client"
         const val MESSAGE_READ = 1
-        var server: Server? = null
-        var client: Client? = null
+        lateinit var groupOwnerAddress: InetAddress
     }
 
 //    var wifiManager: WifiManager? = null
@@ -90,23 +81,16 @@ open class WifiConnectionActivity : AppCompatActivity() {
     private var connectionInfoListener = ConnectionInfoListener { info ->
 
         updateLog("connectionInfoListener")
-        val groupOwnerAddress = info.groupOwnerAddress
-        var msg:String = "Some msg"
+        groupOwnerAddress = info.groupOwnerAddress
         if (info.groupFormed && info.isGroupOwner) {
             connectionStatus!!.text = SERVER
-            server = Server()
-            server!!.start()
-            msg = "Server is broadcasting"
         } else if (info.groupFormed) {
             connectionStatus!!.text = CLIENT
-            client = Client(groupOwnerAddress)
-            client!!.start()
-            msg = "Client is broadcasting"
         } else {
             return@ConnectionInfoListener
         }
 
-        val intent = Intent(this, SendReceiveActivity::class.java)
+        val intent = Intent(this, PassportRelayActivity::class.java)
         intent.putExtra("connectionStatus", connectionStatus.text)
         startActivity(intent)
     }

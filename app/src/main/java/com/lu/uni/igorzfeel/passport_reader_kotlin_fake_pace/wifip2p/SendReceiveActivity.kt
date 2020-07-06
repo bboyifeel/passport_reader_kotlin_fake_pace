@@ -10,13 +10,14 @@ import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.Socket
-import java.nio.charset.Charset
 
 class SendReceiveActivity : AppCompatActivity() {
 
     companion object {
         const val TAG = "SendReceiveActivity"
         const val MESSAGE_READ = 1
+        var server: Server? = null
+        var client: Client? = null
     }
 
     private lateinit var sendReceive: SendReceive
@@ -41,17 +42,25 @@ class SendReceiveActivity : AppCompatActivity() {
         val status = intent.getStringExtra("connectionStatus")
         connectionStatus.text = status
 
-        if (status == WifiConnectionActivity.CLIENT) {
-            sendReceive = SendReceive(Client.socket)
-            sendReceive.start()
-            updateLog("Connected as $status")
-        }
-        else if (status == WifiConnectionActivity.SERVER) {
-            sendReceive = Server.socket?.let {
-                SendReceive(it)
-            }!!
-            sendReceive.start()
-            updateLog("Connected as $status")
+        try {
+            if (status == WifiConnectionActivity.CLIENT) {
+                client = Client(WifiConnectionActivity.groupOwnerAddress)
+                client!!.start()
+                sendReceive = SendReceive(client!!.clientSocket)
+                sendReceive.start()
+                updateLog("Connected as $status")
+            } else if (status == WifiConnectionActivity.SERVER) {
+                server = Server()
+                server!!.start()
+
+                sendReceive = server!!.clientSocket?.let {
+                    SendReceive(it)
+                }!!
+                sendReceive.start()
+                updateLog("Connected as $status")
+            }
+        } catch(e: Exception) {
+            e.printStackTrace()
         }
 
         btnSend.setOnClickListener {
