@@ -52,10 +52,10 @@ class PassportRelayActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
         } catch(e: Exception) {
             updateError(e.toString())
         }
-
-        btnSend.setOnClickListener {
-            sendReceive.sendMessage("This is a test message")
-        }
+//
+//        btnSend.setOnClickListener {
+//            sendReceive.sendMessage("This is a test message")
+//        }
     }
 
 
