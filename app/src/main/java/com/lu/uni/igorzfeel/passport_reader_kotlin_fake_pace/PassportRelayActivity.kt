@@ -28,7 +28,12 @@ class PassportRelayActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
 
         val OK_RAPDU        = Utils.hexStringToByteArray("9000")
         val CA1_CAPDU       = Utils.hexStringToByteArray("00A4020C02011C")
+        val SELECT_CAPDU    = Utils.hexStringToByteArray("00A4040C07A0000002471001")
+        val EXTERNAL_AUTHENTICATE     = Utils.hexStringToByteArray("00820000")
+        // 1 - PACE, 2 - BAC
+        var PROTOCOL = 1
     }
+
     private var nfcAdapter: NfcAdapter? = null
     private lateinit var isoDep: IsoDep
     private var status: String = ""
@@ -51,6 +56,16 @@ class PassportRelayActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
 
         } catch(e: Exception) {
             updateError(e.toString())
+        }
+
+        setBACButton.setOnClickListener {
+            PROTOCOL = 2
+            protocolTextView.text = "Protocol: BAC"
+        }
+
+        setPACEButton.setOnClickListener {
+            PROTOCOL = 1
+            protocolTextView.text = "Protocol: PACE"
         }
 //
 //        btnSend.setOnClickListener {
@@ -102,7 +117,10 @@ class PassportRelayActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
         isoDep = IsoDep.get(tag)
         isoDep.connect()
 
-        startReadingCardAccessFile()
+        if(PROTOCOL == 1)
+            startReadingCardAccessFile()
+        else
+            startBAC()
     }
 
     private fun startReadingCardAccessFile() {
@@ -121,6 +139,16 @@ class PassportRelayActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
         }.start()
     }
 
+    private fun startBAC() {
+        updateLog("capdu: " + Utils.toHex(SELECT_CAPDU))
+        var CA1_RAPDU = isoDep.transceive(SELECT_CAPDU)
+        updateLog("rapdu: " + Utils.toHex(CA1_RAPDU))
+
+        updateLog("[->] ${Utils.toHex(CA1_RAPDU)}")
+        Thread() {
+            sendReceive.sendMessage(Utils.toHex(CA1_RAPDU))
+        }.start()
+    }
 
     private fun updateLog(msg: String) {
         Log.i(TAG, msg)
@@ -143,15 +171,51 @@ class PassportRelayActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
                 val msgString = String(buffer, 0, msg.arg1)
 
                 updateLog("[<-] ${msgString}")
-                var response = isoDep.transceive(Utils.hexStringToByteArray(msgString))
-                updateLog("[->] ${Utils.toHex(response)}")
+                val capdu = Utils.hexStringToByteArray(msgString)
+                var rapdu = isoDep.transceive(capdu)
+                updateLog("[->] ${Utils.toHex(rapdu)}")
+                sendReceive.sendMessage(Utils.toHex(rapdu))
 
-                sendReceive.sendMessage(Utils.toHex(response))
+                if (PROTOCOL == 1)
+                    handlePACEResponse(rapdu)
+                else
+                    handleBACResponse(capdu, rapdu)
             }
         }
         true
     })
 
+
+    private fun handlePACEResponse(rapdu: ByteArray) {
+        if (Arrays.equals(
+                rapdu.take(4).toByteArray(),
+                Utils.hexStringToByteArray("7C0A8608")
+            )
+        ) {
+            updateLog("This is the SAME document");
+            Thread.sleep(1000)
+        } else if (Arrays.equals(
+                rapdu,
+                Utils.hexStringToByteArray("6300")
+            )
+        ) {
+            updateLog("This is NOT the same document")
+            Thread.sleep(1000)
+        }
+    }
+
+
+    private fun handleBACResponse(capdu: ByteArray, rapdu: ByteArray) {
+        if (Arrays.equals(EXTERNAL_AUTHENTICATE, capdu.take(4).toByteArray())) {
+            if(rapdu.size > 2) {
+                updateLog("This is the SAME document")
+            }
+            else {
+                updateLog("This is NOT the same document")
+            }
+            Thread.sleep(1000)
+        }
+    }
 
     inner class SendReceive(private val socket: Socket?) : Thread() {
 
