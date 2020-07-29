@@ -1,4 +1,4 @@
-package com.lu.uni.igorzfeel.passport_reader_kotlin_fake_pace
+package com.lu.uni.igorzfeel.passport_reader_relay
 
 class Utils {
     companion object {

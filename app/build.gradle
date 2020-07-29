@@ -7,7 +7,7 @@ android {
     buildToolsVersion "29.0.2"
 
     defaultConfig {
-        applicationId "com.lu.uni.igorzfeel.passport_reader_kotlin_fake_pace"
+        applicationId "com.lu.uni.igorzfeel.passport_reader_relay"
         minSdkVersion 22
         targetSdkVersion 29
         versionCode 1
